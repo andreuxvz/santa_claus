@@ -1,6 +1,5 @@
 package com.mycompany.santa_claus;
 
-
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.BrokenBarrierException;
@@ -12,26 +11,24 @@ import static java.lang.System.out;
 
 public class SantaClaus {
 
-    private volatile boolean kidsStillBelieveInSanta = true;
     private final Semaphore disbelief = new Semaphore(0);
-    private final static int END_OF_FAITH = 2012;
-    private AtomicInteger year = new AtomicInteger(2006);
+    private final static int END_OF_FAITH = 2021;
+    private AtomicInteger year = new AtomicInteger(2019);
     private static Random generator = new Random();
+    private volatile boolean ninosConFeNavidad = true;
 
-    // problem dimensions
-    private final static int NUMBER_OF_REINDEER = 9;
-    private final static int NUMBER_OF_ELVES = 10;
-    private final static int ELVES_NEEDED_TO_WAKE_SANTA = 3;
+    private final static int NUM_RENOS = 9;
+    private final static int NUM_ENANOS = 12;
+    private final static int ENANOS_PARA_DESPERTAR = 3;
 
-    // synchronisation variables
     private final Semaphore queueElves;
     private final CyclicBarrier threeElves;
     private final CyclicBarrier elvesAreInspired;
     private final CyclicBarrier allReindeers;
     private final CyclicBarrier sleigh;
     private final Semaphore santasAttention;
-    private final static int LAST_REINDEER = 0;    // compares to CyclicBarrier.await()
-    private final static int THIRD_ELF = 0;        // compares to CyclicBarrier.await()
+    private final static int ULTIMO_RENO = 0;
+    private final static int TERCER_ELFO = 0;        
 
     class Reindeer implements Runnable {
         int id;
@@ -39,34 +36,34 @@ public class SantaClaus {
         Reindeer(int id) { this.id = id; }
 
         public void run() {
-            while (kidsStillBelieveInSanta) {
+            while (ninosConFeNavidad) {
                 try {
-                    // wait until christmas comes
+                   
                     Thread.sleep(900 + generator.nextInt(200));
 
-                    // only all reindeers together can wake Santa
+                    // Mostrar mensaje cuando lleguen todos los renos
                     int reindeer = allReindeers.await();
-                    // the last reindeer to return to North Pole must wake Santa
-                    if (reindeer == LAST_REINDEER) {
+                    // Validación cuando llega el último reno
+                    if (reindeer == ULTIMO_RENO) {
                         santasAttention.acquire();
-                        out.println("=== Delivery for Christmas " + year + " ===");
+                        out.println("=== Listo para entregar los jueguetes por navidad " + year + " ===");
                         if (year.incrementAndGet() == END_OF_FAITH)
                         {
-                            kidsStillBelieveInSanta = false;
+                            ninosConFeNavidad = false;
                             disbelief.release();
                         }
                     }
 
-                    // to deliver toys, the reindeer must be harnessed to the sleigh
+                    // el trineo espera que todos los renos esten amarrados
                     sleigh.await();
                     Thread.sleep(generator.nextInt(20));   // delivering is almost immediate
 
-                    // unharnessing can use the same barrier as harnessing,
-                    // because the barrier is cyclic
+                    // Se liberan a los renos del trineo
+                    // la clase barrier es ciclica
                     reindeer = sleigh.await();
-                    if (reindeer == LAST_REINDEER) {
+                    if (reindeer == ULTIMO_RENO) {
                         santasAttention.release();
-                        out.println("=== Toys are delivered ===");
+                        out.println("=== Todos los juguetes han sido entregados ===");
                     }
                 } catch (InterruptedException e) {
                     // thread interrupted for program cleanup
@@ -74,7 +71,7 @@ public class SantaClaus {
                     // another thread in the barrier was interrupted
                 }
             }
-            out.println("Reindeer " + id + " retires");
+            out.println("Reno " + id + " se retira");
         }
     }
 
@@ -87,31 +84,31 @@ public class SantaClaus {
             try {
                 Thread.sleep(generator.nextInt(2000));
 
-                while (kidsStillBelieveInSanta) {
+                while (ninosConFeNavidad) {
                     // no more than three elves fit into Santa's office
                     queueElves.acquire();
-                    out.println("Elf " + id + " ran out of ideas");
+                    out.println("Enano " + id + " con problema");
 
-                    // wait until three elves have a problem
+                    // Cola de atención de los 3 enanos
                     int elf = threeElves.await();
 
-                    // the third elf acts for all three
-                    if (elf == THIRD_ELF)
+                    // Validación cuando llega el tercer enano
+                    if (elf == TERCER_ELFO)
                         santasAttention.acquire();
 
-                    // wait until all elves have new ideas
+                    // Esperamos que los enanos tengan nuevas ideas
                     Thread.sleep(generator.nextInt(500));
-                    out.println("Elf " + id + " got inspiration");
+                    out.println("Enano " + id + " atendido");
                     elvesAreInspired.await();
 
-                    if (elf == THIRD_ELF)
+                    if (elf == TERCER_ELFO)
                         santasAttention.release();
 
-                    // other elves that ran out of ideas in the meantime
-                    // may now gather and wake santa again
+                    
+                    // Liberamos la cola de los enanos
                     queueElves.release();
 
-                    // manufacture toys until the inspiration is used up
+                   
                     Thread.sleep(generator.nextInt(2000));
                 }
             } catch (InterruptedException e) {
@@ -119,7 +116,7 @@ public class SantaClaus {
             } catch (BrokenBarrierException e) {
                 // another thread in the barrier was interrupted
             }
-            out.println("Elf " + id + " retires");
+            out.println("Enano " + id + " se retira");
         }
     }
 
@@ -137,41 +134,38 @@ public class SantaClaus {
         public void run() {
             isSleighAttached = !isSleighAttached;
             if (isSleighAttached)
-                out.println("=== All reindeer harnessed ===");
+                out.println("=== Todos los renos han sido amarrados al trineo ===");
             else
-                out.println("=== All reindeer are back in the stable ===");
+                out.println("=== Todos los renos estan en el establo ===");
         }
     }
 
     public SantaClaus() {
-        // use a fair semaphore for Santa to prevent that a second group
-        // of elves might get Santas attention first if the reindeer are
-        // waiting and Santa is consulting with a first group of elves.
         santasAttention = new Semaphore(1, true);
-        queueElves = new Semaphore(ELVES_NEEDED_TO_WAKE_SANTA, true);    // use a fair semaphore
-        threeElves = new CyclicBarrier(ELVES_NEEDED_TO_WAKE_SANTA,
-                new BarrierMessage("--- " + ELVES_NEEDED_TO_WAKE_SANTA + " elves are knocking ---"));
-        elvesAreInspired = new CyclicBarrier(ELVES_NEEDED_TO_WAKE_SANTA,
-                new BarrierMessage("--- Elves return to work ---"));
-        allReindeers = new CyclicBarrier(NUMBER_OF_REINDEER, new Runnable() {
+        queueElves = new Semaphore(ENANOS_PARA_DESPERTAR, true);    // semaforo indicador
+        threeElves = new CyclicBarrier(ENANOS_PARA_DESPERTAR,
+                new BarrierMessage("--- " + ENANOS_PARA_DESPERTAR + " enanos necesitan ayuda ---"));
+        elvesAreInspired = new CyclicBarrier(ENANOS_PARA_DESPERTAR,
+                new BarrierMessage("--- Enanos regresan a trabajar ---"));
+        allReindeers = new CyclicBarrier(NUM_RENOS, new Runnable() {
             public void run() {
-                out.println("=== Reindeer reunion for Christmas " + year +" ===");
+                out.println("=== Todos los renos completos para navidad " + year +" ===");
             }});
-        sleigh = new CyclicBarrier(NUMBER_OF_REINDEER, new Harnessing());
+        sleigh = new CyclicBarrier(NUM_RENOS, new Harnessing());
 
         ArrayList<Thread> threads = new ArrayList<Thread>();
-        for (int i = 0; i < NUMBER_OF_ELVES; ++i)
+        for (int i = 0; i < NUM_ENANOS; ++i)
             threads.add(new Thread(new Elf(i)));
-        for (int i = 0; i < NUMBER_OF_REINDEER; ++i)
+        for (int i = 0; i < NUM_RENOS; ++i)
             threads.add(new Thread(new Reindeer(i)));
-        out.println("Once upon in the year " + year + " :");
+        out.println("Una vez cada año " + year + " :");
         for (Thread t : threads)
             t.start();
 
         try {
-            // wait until !kidsStillBelieveInSanta
+            // Esperamos hasta que las personas dejen de creer en la navidad
             disbelief.acquire();
-            out.println("Faith has vanished from the world");
+            out.println("La fe ha desaparecido del mundo");
             for (Thread t : threads)
                 t.interrupt();
             for (Thread t : threads)
@@ -179,7 +173,7 @@ public class SantaClaus {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        out.println("The End of Santa Claus");
+        out.println("Fin de la navidad pra siempre");
     }
 
     public static void main(String[] args) {
